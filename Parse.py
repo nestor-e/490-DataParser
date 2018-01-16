@@ -4,21 +4,25 @@ import re
 
 
 # In memory tablet representation, JSON-like structure
-#  {IdToken1 : String, IdToken2 : String, IdToken3 : String,
-#      Sides : [{side : Left/Right/Obverse/Reverse,
-#                Content : [{subregion : none/seal/column/..., regionNum : n (optional), lines : [Line 1 (String), Line 2 (String), ...]},
+#  {idToken1 : String, idToken2 : String, idToken3 : String,
+#      sides : [{side : Left/Right/Obverse/Reverse,
+#                content : [{subregion : none/seal/column/..., regionNum : n (optional), lines : [Line 1 (String), Line 2 (String), ...]},
 #           ... ]},
 # ...] }
 
 
+# Tentative list of special tokens in file format
+CDLI_SIDE_LABELS  = ["@obverse", "@reverse", "@left", "@right", "@top", "@botttom"]
+CDLI_COMMENT_MARKERS = ['#', '$']
+
 # Determines if a section header denotes a side or not, this list may need to be expanded
 def isSideMarker(string):
-    return string in ["@obverse", "@reverse", "@left", "@right", "@top", "@botttom"]
+    return string in CDLI_SIDE_LABELS
 
 # Tablets are delineated by lines begining with &
 def seperateTablets(filename):
     tabletStrings = []
-    tabFile = open(filename, 'r')
+    tabFile = open(filename, 'r', encoding='utf-8')
     curText = []
     curId = ""
     for line in tabFile:
@@ -28,7 +32,7 @@ def seperateTablets(filename):
             curId = line.strip()
             curText = []
         else:
-            if len(line.strip()) > 0 and line[0] not in "#$":  # Ignore comments and empty lines
+            if len(line.strip()) > 0 and line[0] not in CDLI_COMMENT_MARKERS:  # Ignore comments and empty lines
                 curText.append( line.strip() )
     return tabletStrings
 
@@ -46,9 +50,9 @@ def parseTablet(tabletText):
 def parseId(d, idLine):
     match = re.search(r'^&(\w+) = (.+?), (.+)' , idLine)
     if match:
-        d['IdToken1'] = match.group(1)
-        d['IdToken2'] = match.group(2)
-        d['IdToken3'] = match.group(3)
+        d['idToken1'] = match.group(1)
+        d['idToken2'] = match.group(2)
+        d['idToken3'] = match.group(3)
         return True
     else:
         return False
@@ -84,7 +88,11 @@ def readSide(lines, start):
     return (side, end)
 
 
-
+# Actual text content of tablets is contained in contiguos regions of the file
+# I am calling subregions.  Each subregion begins with a line:
+# @(label) (index)
+# where label can be any string, and the index(optional) is the running count of
+# that particular label within the current side
 def parseRegion(lines, start, end):
     region  = {}
     region['subregion']  = "none"
@@ -108,6 +116,14 @@ def parseRegion(lines, start, end):
     return (region, cur)
 
 
+# Prints whole text of a tablet in order it appears in file, without annotation
+# Demo of how to traverse data structure
+def getFullText(tablet):
+    for side in tablet['sides']:
+        for region in side['content']:
+            for line in region['lines']:
+                print(line)
+
 
 
 def main(filename):
@@ -117,7 +133,7 @@ def main(filename):
         temp = parseTablet(t)
         if temp != None:
             tablets.append(temp)
-    print(tablets[1])
+    getFullText(tablets[1])
 
 if __name__ == "__main__":
     main(sys.argv[1])

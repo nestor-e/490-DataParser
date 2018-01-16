@@ -5,14 +5,17 @@ import re
 
 # In memory tablet representation, JSON-like structure
 #  {IdToken1 : String, IdToken2 : String, IdToken3 : String,
-#      Sides : [{Side : Left/Right/Obverse/Reverse,
-#                Content : [{Subregion : None/Seal/Column, regionNum : n (optional), Lines : [Line 1, Line 2, ...]},
+#      Sides : [{side : Left/Right/Obverse/Reverse,
+#                Content : [{subregion : none/seal/column/..., regionNum : n (optional), lines : [Line 1 (String), Line 2 (String), ...]},
 #           ... ]},
 # ...] }
 
-def isSideMarker(string):
-    return string in "@obverse@reverse@left@right@top@botttom"
 
+# Determines if a section header denotes a side or not, this list may need to be expanded
+def isSideMarker(string):
+    return string in ["@obverse", "@reverse", "@left", "@right", "@top", "@botttom"]
+
+# Tablets are delineated by lines begining with &
 def seperateTablets(filename):
     tabletStrings = []
     tabFile = open(filename, 'r')
@@ -25,48 +28,21 @@ def seperateTablets(filename):
             curId = line.strip()
             curText = []
         else:
-            if len(line.strip()) > 0 and line[0] not in "#$":  #Ignore comment lines
+            if len(line.strip()) > 0 and line[0] not in "#$":  # Ignore comments and empty lines
                 curText.append( line.strip() )
     return tabletStrings
 
 
-def parseRegion(lines, start, end):
-    region  = {}
-    region['subregion']  = "none"
-    region['Lines'] = []
-    cur = start
-    if lines[start][0] == '@':
-        cur += 1
-        m = re.search(r"^@(\w+) ?(\d*)", lines[start])
-        if m:
-            region['subregion']  = m.group(1)
-            if m.group(2):
-                region['regionNum'] = m.group(2)
+# Construct representation of tablet from associated lines in file, if possible
+def parseTablet(tabletText):
+    tablet = {}
+    if parseId(tablet, tabletText[0]) and parseText(tablet, tabletText[1]):
+        return tablet
+    else:
+        return None
 
-    while cur < end and lines[cur][0] != '@':
-        m = re.match(r"^[0-9.'>]+ ?(.+)", lines[cur])
-        #TODO: decide what lines like >>Qxxxxxxx nnn mean
-        if m:
-            region['Lines'].append(m.group(1))
-        cur += 1
-    return (region, cur)
-
-
-def readSide(lines, start):
-    side = {}
-    end = start + 1
-    while end < len(lines) and not isSideMarker(lines[end]):
-        end += 1
-    side['Side'] = lines[start][1:]
-    side['Content'] = []
-    start += 1
-    while start < end:
-        (elem, start) = parseRegion(lines, start, end)
-        side['Content'].append(elem)
-    return (side, end)
-
-
-
+# First line in file for each tablet contains Id in format &Pxxxxxx = SomeString, AnotherString
+# I dont know what exactly these represent so I grab all three parts
 def parseId(d, idLine):
     match = re.search(r'^&(\w+) = (.+?), (.+)' , idLine)
     if match:
@@ -77,6 +53,9 @@ def parseId(d, idLine):
     else:
         return False
 
+# Contents of each tablet devided into sections, delineated by lines begining with @
+# these seem to have some nested structure but it's not clear how exactly that is defined
+# the following methods represent my best guess
 def parseText(d, text):
     if len(text) == 0 or text[0] != '@tablet':
         return False
@@ -89,13 +68,46 @@ def parseText(d, text):
         d['sides'] = sides
         return True
 
+# Outer most nested layer is labeled by a fixed set of section names corrosponding
+# to sides of the tablet as determined by isSideMarker function
+def readSide(lines, start):
+    side = {}
+    end = start + 1
+    while end < len(lines) and not isSideMarker(lines[end]):
+        end += 1
+    side['side'] = lines[start][1:]
+    side['content'] = []
+    start += 1
+    while start < end:
+        (elem, start) = parseRegion(lines, start, end)
+        side['content'].append(elem)
+    return (side, end)
 
-def parseTablet(tabletText):
-    tablet = {}
-    if parseId(tablet, tabletText[0]) and parseText(tablet, tabletText[1]):
-        return tablet
-    else:
-        return None
+
+
+def parseRegion(lines, start, end):
+    region  = {}
+    region['subregion']  = "none"
+    region['lines'] = []
+    cur = start
+    if lines[start][0] == '@':
+        cur += 1
+        m = re.search(r"^@(\w+) ?(\d*)", lines[start])
+        if m:
+            region['subregion']  = m.group(1)
+            if m.group(2):
+                region['regionNum'] = m.group(2)
+
+    while cur < end and lines[cur][0] != '@':
+        #TODO: decide what lines like >>Qxxxxxxx nnn mean, I dont think they are text
+        m = re.match(r"^[0-9.']+ ?(.+)", lines[cur]) # to exclude such lines
+        #m = re.match(r"^[0-9.'>]+ ?(.+)", lines[cur]) # to include them
+        if m:
+            region['lines'].append(m.group(1))
+        cur += 1
+    return (region, cur)
+
+
 
 
 def main(filename):

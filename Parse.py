@@ -124,15 +124,19 @@ def getFullText(tablet):
             for line in region['lines']:
                 print(line)
 
-
-
-def main(filename):
+# Reads all records that look like tablets from given file
+def getTabletsFromFile(filename):
     tabletStrings = seperateTablets(filename)
     tablets = []
     for t in tabletStrings:
         temp = parseTablet(t)
         if temp != None:
             tablets.append(temp)
+    return tablets
+
+
+def main(filename):
+    tablets = getTabletsFromFile(filename)
     getFullText(tablets[1])
 
 if __name__ == "__main__":

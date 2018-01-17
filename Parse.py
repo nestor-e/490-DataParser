@@ -119,10 +119,12 @@ def parseRegion(lines, start, end):
 # Prints whole text of a tablet in order it appears in file, without annotation
 # Demo of how to traverse data structure
 def getFullText(tablet):
+    text  = ""
     for side in tablet['sides']:
         for region in side['content']:
             for line in region['lines']:
-                print(line)
+                text += line + "\n"
+    return text
 
 # Reads all records that look like tablets from given file
 def getTabletsFromFile(filename):

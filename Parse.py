@@ -1,7 +1,6 @@
 #! /usr/bin/python3
 import sys
 import re
-import json
 
 
 # In memory tablet representation, JSON-like structure
@@ -126,25 +125,6 @@ def getFullText(tablet):
             for line in region['lines']:
                 text += line + "\n"
     return text
-
-
-# Outputs full tablet representation for each tablet in toExport into new file (filename)
-# formated in JSON
-def jsonOutputFull(toExport, filename):
-    f = open(filename, 'w')
-    json.dump(toExport, f)
-    f.close()
-
-# Outputs a map from TabletId -> TabletText for all tablets in toExport into given file
-# formated in JSON
-def jsonOutputTextOnly(toExport, filename):
-    d = {}
-    for tab in toExport:
-        d[tab['idToken1']] = getFullText(tab)
-    f = open(filename, 'w')
-    json.dump(d, f)
-    f.close()
-
 
 
 # Reads all records that look like tablets from given file

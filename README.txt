@@ -1,5 +1,9 @@
 CDLI Data Parsing Tool
 
+    Initial Data:
+        The .atf file these scripts are designed to work at can be downloaded at
+        https://cdli.ucla.edu/tools/cdlifiles/cdliatf_unblocked.zip
+
     Parse module:
         The file Parse.py contains code intended to be used as a module
         for other python3 scripts.  It converts data on tablets in the
@@ -15,7 +19,7 @@ CDLI Data Parsing Tool
                             }, ...
                         ]
                     }, ...
-                ] 
+                ]
              }
 
     jsonExporter.py

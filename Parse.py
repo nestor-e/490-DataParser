@@ -4,16 +4,33 @@ import re
 
 
 # In memory tablet representation, JSON-like structure
-#  {idToken1 : String, idToken2 : String, idToken3 : String,
-#      sides : [{side : Left/Right/Obverse/Reverse,
-#                content : [{subregion : none/seal/column/..., regionNum : n (optional), lines : [Line 1 (String), Line 2 (String), ...]},
-#           ... ]},
-# ...] }
+# {   idToken1 : String, idToken2 : String, idToken3 : String,
+#     objectType : String, startsOn : int, endsOn : int,
+#     sides : [
+#         {   side : Left/Right/Obverse/Reverse/...,
+#             content : [
+#                 {   subregion : none/seal/column/...,
+#                     regionNum : n (optional),
+#                     lines : [ {text : String, referenceId : String, referenceNum : String } , ... ]
+#                 }, ...
+#             ]
+#         }, ...
+#     ]
+#  }
 
 
 # Tentative list of special tokens in file format
-CDLI_SIDE_LABELS  = ["@obverse", "@reverse", "@left", "@right", "@top", "@botttom"]
+CDLI_SIDE_LABELS  = ["@obverse", "@reverse", "@left", "@right", "@top", "@botttom", "@face", "@surface"] ## Array in vs String in
+CDLI_OBJECT_TYPES = ["@tablet","@envelope","@prism","@bulla","@fragment","@object"]
 CDLI_COMMENT_MARKERS = ['#', '$']
+
+#Compile regular expressions relating to various parts of ATF file
+REGEX_ID = re.compile(r'^&(\w+) = (.+)')
+REGEX_REGION_START = re.compile(r"^@(\w+) ?(\d*)")
+REGEX_LINE_START = re.compile(r"^[0-9.']+ ?(.+)")
+REGEX_LINE_CONTINUE = re.compile(r"^ (.+)")
+REGEX_LINE_REFRENCE = re.compile(r"^>>(\w+) ([\w']+)")
+
 
 # Determines if a section header denotes a side or not, this list may need to be expanded
 def isSideMarker(string):
@@ -25,15 +42,19 @@ def seperateTablets(filename):
     tabFile = open(filename, 'r', encoding='utf-8')
     curText = []
     curId = ""
+    curLineStart = 0
+    lineNum = 0
     for line in tabFile:
         if(line[0] == '&'):
             if curId:
-                tabletStrings.append((curId, curText))
+                tabletStrings.append((curId, curText, (curLineStart, lineNum - 1)))
             curId = line.strip()
             curText = []
+            curLineStart = lineNum
         else:
             if len(line.strip()) > 0 and line[0] not in CDLI_COMMENT_MARKERS:  # Ignore comments and empty lines
                 curText.append( line.strip() )
+        lineNum += 1
     return tabletStrings
 
 
@@ -41,6 +62,8 @@ def seperateTablets(filename):
 def parseTablet(tabletText):
     tablet = {}
     if parseId(tablet, tabletText[0]) and parseText(tablet, tabletText[1]):
+        tablet['startsOn'] = tabletText[2][0]
+        tablet['endsOn'] = tabletText[2][1]
         return tablet
     else:
         return None
@@ -48,11 +71,10 @@ def parseTablet(tabletText):
 # First line in file for each tablet contains Id in format &Pxxxxxx = SomeString, AnotherString
 # I dont know what exactly these represent so I grab all three parts
 def parseId(d, idLine):
-    match = re.search(r'^&(\w+) = (.+?), (.+)' , idLine)
+    match = REGEX_ID.match(idLine)
     if match:
-        d['idToken1'] = match.group(1)
-        d['idToken2'] = match.group(2)
-        d['idToken3'] = match.group(3)
+        d['idCDLI'] = match.group(1)
+        d['idName'] = match.group(2)
         return True
     else:
         return False
@@ -61,11 +83,16 @@ def parseId(d, idLine):
 # these seem to have some nested structure but it's not clear how exactly that is defined
 # the following methods represent my best guess
 def parseText(d, text):
-    if len(text) == 0 or text[0] != '@tablet':
+    if len(text) == 0:
         return False
     else:
+        if text[0] in CDLI_OBJECT_TYPES:
+            d['objectType'] = text[0][1:]
+            i  = 1
+        else:
+            d['objectType'] = 'None'
+            i  = 0
         sides = []
-        i  = 1
         while i < len(text):
             (side, i) = readSide(text, i)
             sides.append(side)
@@ -100,20 +127,42 @@ def parseRegion(lines, start, end):
     cur = start
     if lines[start][0] == '@':
         cur += 1
-        m = re.search(r"^@(\w+) ?(\d*)", lines[start])
+        m = REGEX_REGION_START.search(lines[start])
         if m:
             region['subregion']  = m.group(1)
             if m.group(2):
                 region['regionNum'] = m.group(2)
 
     while cur < end and lines[cur][0] != '@':
-        #TODO: decide what lines like >>Qxxxxxxx nnn mean, I dont think they are text
-        m = re.match(r"^[0-9.']+ ?(.+)", lines[cur]) # to exclude such lines
-        #m = re.match(r"^[0-9.'>]+ ?(.+)", lines[cur]) # to include them
-        if m:
-            region['lines'].append(m.group(1))
-        cur += 1
+        (lineRecord, cur) = parseLine(lines, cur, end)
+        if(lineRecord):
+            region['lines'].append(lineRecord)
     return (region, cur)
+
+def parseLine(lines, start, end):
+    cur = start
+    lineMatch = REGEX_LINE_START.match(lines[cur])
+    if lineMatch:
+        lineRecord = {}
+        lineRecord['text'] = lineMatch.group(1)
+        cur += 1
+        cont = True
+        while cur < end and cont:
+            continueMatch = REGEX_LINE_CONTINUE.match(lines[cur])
+            refrenceMatch = REGEX_LINE_REFRENCE.match(lines[cur])
+            if continueMatch:
+                lineRecord['text'].append(continueMatch.group(1))
+                cur += 1
+            elif refrenceMatch:
+                lineRecord['refrenceId'] = refrenceMatch.group(1)
+                lineRecord['refrenceNum'] = refrenceMatch.group(2)
+                cur += 1
+            else :
+                cont = False
+        return (lineRecord, cur)
+    else:
+        return (None, start + 1)
+
 
 
 # Prints whole text of a tablet in order it appears in file, without annotation
@@ -123,7 +172,7 @@ def getFullText(tablet):
     for side in tablet['sides']:
         for region in side['content']:
             for line in region['lines']:
-                text += line + "\n"
+                text += line['text'] + "\n"
     return text
 
 
@@ -140,7 +189,7 @@ def getTabletsFromFile(filename):
 
 def main(filename):
     tablets = getTabletsFromFile(filename)
-    getFullText(tablets[1])
+    print(tablets[0])
 
 if __name__ == "__main__":
     main(sys.argv[1])

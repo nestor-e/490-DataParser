@@ -10,12 +10,13 @@ CDLI Data Parsing Tool
         CDLI's .atf format to the following JSON structure:
 
             {   idToken1 : String, idToken2 : String, idToken3 : String,
+                objectType : String, startsOn : int, endsOn : int,
                 sides : [
-                    {   side : Left/Right/Obverse/Reverse,
+                    {   side : Left/Right/Obverse/Reverse/...,
                         content : [
                             {   subregion : none/seal/column/...,
                                 regionNum : n (optional),
-                                lines : [Line 1 (String), Line 2 (String), ...]
+                                lines : [ {text : String, referenceId : String, referenceNum : String } , ... ]
                             }, ...
                         ]
                     }, ...

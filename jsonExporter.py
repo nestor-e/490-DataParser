@@ -21,7 +21,7 @@ def jsonOutputTextOnly(toExport, filename):
     l = []
     for tab in toExport:
         d = {}
-        d['id'] = tab['idToken1']
+        d['id'] = tab['idCDLI']
         d['text'] = Parse.getFullText(tab)
         l.append(d)
     f = open(filename, 'w')

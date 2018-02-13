@@ -4,14 +4,14 @@ import re
 
 
 # In memory tablet representation, JSON-like structure
-# {   idToken1 : String, idToken2 : String, idToken3 : String,
+# {   idCDLI : String, idName : String,
 #     objectType : String, startsOn : int, endsOn : int,
 #     sides : [
-#         {   side : Left/Right/Obverse/Reverse/...,
+#         {   side : None, Left/Right/Obverse/Reverse/...,
 #             content : [
 #                 {   subregion : none/seal/column/...,
 #                     regionNum : n (optional),
-#                     lines : [ {text : String, referenceId : String, referenceNum : String } , ... ]
+#                     lines : [ {text : String, referenceId : String, referenceNum : String , attestations : [wor]} , ... ]
 #                 }, ...
 #             ]
 #         }, ...
@@ -106,9 +106,12 @@ def readSide(lines, start):
     end = start + 1
     while end < len(lines) and not isSideMarker(lines[end]):
         end += 1
-    side['side'] = lines[start][1:]
+    if isSideMarker(lines[start]):
+        side['side'] = lines[start][1:]
+        start += 1
+    else:
+        side['side'] = 'none'
     side['content'] = []
-    start += 1
     while start < end:
         (elem, start) = parseRegion(lines, start, end)
         side['content'].append(elem)
@@ -163,7 +166,15 @@ def parseLine(lines, start, end):
     else:
         return (None, start + 1)
 
-
+# I don't understand how this is possible but there are some tablets in the atf file with the same Id
+def cleanDuplicateIds(data):
+    ids = set()
+    for tab in data:
+        tId = tab['idCDLI']
+        while tId in ids:
+            tId += tab['idName']
+        tab['idCDLI'] = tId
+        ids.add(tId)
 
 # Prints whole text of a tablet in order it appears in file, without annotation
 # Demo of how to traverse data structure
@@ -184,6 +195,7 @@ def getTabletsFromFile(filename):
         temp = parseTablet(t)
         if temp != None:
             tablets.append(temp)
+    cleanDuplicateIds(tablets)
     return tablets
 
 

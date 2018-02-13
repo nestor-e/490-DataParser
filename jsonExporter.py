@@ -12,7 +12,7 @@ FULL_NAME = "CDLI_full.json"
 # formated in JSON
 def jsonOutputFull(toExport, filename):
     f = open(filename, 'w')
-    json.dump(toExport, f)
+    json.dump(toExport, f, indent=2)
     f.close()
 
 # Outputs a map from TabletId -> TabletText for all tablets in toExport into given file

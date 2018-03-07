@@ -9,19 +9,23 @@ CDLI Data Parsing Tool
         for other python3 scripts.  It converts data on tablets in the
         CDLI's .atf format to the following JSON structure:
 
-            {   idToken1 : String, idToken2 : String, idToken3 : String,
-                objectType : String, startsOn : int, endsOn : int,
-                sides : [
-                    {   side : Left/Right/Obverse/Reverse/...,
-                        content : [
-                            {   subregion : none/seal/column/...,
-                                regionNum : n (optional),
-                                lines : [ {text : String, referenceId : String, referenceNum : String } , ... ]
-                            }, ...
-                        ]
-                    }, ...
-                ]
-             }
+	{   idCDLI : String, idName : String,
+	    objectType : String, startsOn : int, endsOn : int,
+	    sides : [
+		 {   side : None, Left/Right/Obverse/Reverse/...,
+		     content : [
+		         {   subregion : none/seal/column/...,
+		             regionNum : n (optional),
+		             lines : [ { text : String, 
+					 (optional) referenceId : String, 
+					 (optional) referenceNum : String, 					 (optional) attestations : [nameId 1, nameId 2, ... ]
+					} , ....
+				     ]
+		         }, ...
+		     ]
+		 }, ...
+	     ]
+	}
 
     jsonExporter.py
         This is a python3 script which uses the Parse module convert the data
@@ -40,3 +44,23 @@ CDLI Data Parsing Tool
 
         Usage:
             python3 jsonExporter.py [CDLI data file] [Also export full structure: y/n]
+
+    AddAttestations.py
+	Adds results from SNER to json representation of data (i.e. adds attestations field), 
+	and outputs a mapping of name Ids to the text of the names.
+
+
+	!!! IMPORTANT NOTE:
+	Because this process needs to utalize SNER's methods for normalizing text,
+	it must import classes from SNER.  This requires that SNER be added to pythons 
+	path variable, and this is currently hardcoded, so in order to use this script 
+	you may need to modify it to reflect the location of SNER on the current system. 
+	See Line 13.
+
+	Usage:
+  python3 AddAttestations.py [ATF File] [Key File] [Prediction File] [json Output] [Names output]
+
+	- [ATF File] should be CDLI data file used for this run of SNER
+	- [Key File] is one output of SNER, target_atf.KEY
+	- [Prediction File] is another output of sner, atf_prediction.RT
+	- [json Output] and [Names output] are locations to save results

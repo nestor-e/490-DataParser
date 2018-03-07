@@ -6,10 +6,16 @@ import Parse
 import jsonExporter
 import csv
 import sys
+import re
 
-# I don't understand why we need both of these but we do
-sys.path.append('../')
-sys.path.append('../sner')
+Commas = re.compile(r",")
+
+# # # CHANGE THESE TO REFLECT LOCATION OF SNER # # # # # # # # # # #
+sys.path.append('../') ## PARENT DIRECTORY OF SNER (I'm not sure why this is nesccicary)
+sys.path.append('../sner') ## SNER DIRECTORY
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
 from sner.classes import Display
 from sner.scripts import utilities
 
@@ -70,7 +76,7 @@ def getNames(keyFile, resultFile):
             for kLine in k:
                 isName = r.readline().strip() == '1'
                 if isName:
-                    kVals = kLine.split(',')
+                    kVals = kLine.split('\t')
                     word = kVals[3].strip()
                     lineNum = int( kVals[1].strip() )
                     if word not in names:
@@ -88,7 +94,7 @@ def outputNames(names, filepath):
         write.writeheader()
         for name in names:
             write.writerow({'Name Id':names[name]['id'],
-                            'Name' : name ,
+                            'Name' : Commas.sub(name, '.') ,
                             'Occurance Count' : len(names[name]['on'])})
 
 def addAttestation(tablet, sideN, regionN, lineN, Id):

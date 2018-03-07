@@ -11,7 +11,7 @@ import re
 #             content : [
 #                 {   subregion : none/seal/column/...,
 #                     regionNum : n (optional),
-#                     lines : [ {text : String, referenceId : String, referenceNum : String , attestations : [wor]} , ... ]
+#                     lines : [ {text : String, referenceId : String, referenceNum : String , attestations : [word]} , ... ]
 #                 }, ...
 #             ]
 #         }, ...

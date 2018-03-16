@@ -1,0 +1,46 @@
+Instructions for running SNER for Extraction of ATF Names:
+
+I ) Setup SNER
+  Running SNER for use with this project requires some minor modifications to SNER.
+  At some point we should create a branch of SNER with these changes, but for now
+  I will just describe them here.  File paths given to the root directory where SNER
+  is located.
+
+  1) Clone SNER, checkout into branch andy
+
+  2) In sner/scripts/export.py , in function main(), on lines 378-388, where a set
+      of 9 output files are opened (out_features{1,2,3}, out_target{1,2,3}, out_key{1,2,3}):
+      Change the hard coded paths to be relative to the local path variable
+      (e.g. "data/features_train.sparseX" --> path + "features_train.sparseX")
+
+  3)  In sner/scripts/export_atf.py, in function writeLine(), on lines 230, 235, and 239
+      In the format strings for the output, replace the comma separators by tab separators
+      (e.g. "{0}, {1}, {2}, {3}\n" - > "{0}\t{1}\t{2}\t{3}\n")
+      This is because some of the inserted content can contain commas, so this is
+      easier to parse.  It is likely possible to remove the necessity for this by
+      accounting for this possibility in the AddAttestations.py file.
+
+
+II) Setup Data Directory
+  Create a new directory.  Place the following files in it:
+    1) RunSNER.sh  - Included in this repo
+
+    2) corpus.csv - CSV version of the attestations file from the garsana corpus,
+        used for training the model.  MUST be named corpus.csv
+
+    3) *.atf - The atf file you want to extract names from.
+
+  Then, in RunSNER.sh, modify the assigned value of the variable ATF to reflect
+    the name of the atf file you are using.
+
+III) Run SNER to get prediction
+  From the directory created in part II, run the RunSNER.sh script.
+
+IV) Generate JSON output for ATF file
+  Run the python script addAttestations.py.  It takes 5 arguments, as follows:
+
+    1) Source ATF file
+    2) target_atf.key file generated in step III
+    3) atf_prediction.RT file generated in step III
+    4) filename for output of names CSV file
+    5) filename for output of finished JSON file

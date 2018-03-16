@@ -8,8 +8,6 @@ import csv
 import sys
 import re
 
-Commas = re.compile(r",")
-
 # # # CHANGE THESE TO REFLECT LOCATION OF SNER # # # # # # # # # # #
 sys.path.append('../') ## PARENT DIRECTORY OF SNER (I'm not sure why this is nesccicary)
 sys.path.append('../sner') ## SNER DIRECTORY
@@ -19,7 +17,11 @@ sys.path.append('../sner') ## SNER DIRECTORY
 from sner.classes import Display
 from sner.scripts import utilities
 
-
+def replaceCommas(string, char):
+    for i in range(len(string)):
+        if string[i] == char:
+            string = string[:i] + char + string[i+1:]
+    return string
 
 def cleanLine(line):
     clean = utilities.clean_line(line.lower(), True, True).split()
@@ -94,7 +96,7 @@ def outputNames(names, filepath):
         write.writeheader()
         for name in names:
             write.writerow({'Name Id':names[name]['id'],
-                            'Name' : Commas.sub(name, '.') ,
+                            'Name' : replaceCommas(name, '.') ,
                             'Occurance Count' : len(names[name]['on'])})
 
 def addAttestation(tablet, sideN, regionN, lineN, Id):

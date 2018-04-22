@@ -12,6 +12,7 @@ I ) Setup SNER
       of 9 output files are opened (out_features{1,2,3}, out_target{1,2,3}, out_key{1,2,3}):
       Change the hard coded paths to be relative to the local path variable
       (e.g. "data/features_train.sparseX" --> path + "features_train.sparseX")
+      
 
   3)  In sner/scripts/export_atf.py, in function writeLine(), on lines 230, 235, and 239
       In the format strings for the output, replace the comma separators by tab separators
@@ -19,16 +20,22 @@ I ) Setup SNER
       This is because some of the inserted content can contain commas, so this is
       easier to parse.  It is likely possible to remove the necessity for this by
       accounting for this possibility in the AddAttestations.py file.
+      
+  4) Wrap lines 235 - 237 in an if statment checking if i > 0, so as not to write blank lines
+      for atf lines containing a single word
 
 
 II) Setup Data Directory
   Create a new directory.  Place the following files in it:
     1) RunSNER.sh  - Included in this repo
 
-    2) corpus.csv - CSV version of the attestations file from the garsana corpus,
+    2) corpus.csv - CSV version of the Texts file from the garsana corpus,
         used for training the model.  MUST be named corpus.csv
-
-    3) *.atf - The atf file you want to extract names from.
+    
+    3) attestations.csv  - CSV version of the Attestations file from the garsana corpus,
+        used for training the model.  MUST be named attestations.csv
+    
+    4) *.atf - The atf file you want to extract names from.
 
   Then, in RunSNER.sh, modify the assigned value of the variable ATF to reflect
     the name of the atf file you are using.

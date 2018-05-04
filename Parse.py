@@ -11,7 +11,7 @@ import re
 #             content : [
 #                 {   subregion : none/seal/column/...,
 #                     regionNum : n (optional),
-#                     lines : [ {text : String, referenceId : String, referenceNum : String , attestations : [word]} , ... ]
+#                     lines : [ {text : String, comments : String[] , attestations : [word]} , ... ]
 #                 }, ...
 #             ]
 #         }, ...
@@ -22,15 +22,14 @@ import re
 # Tentative list of special tokens in file format
 CDLI_SIDE_LABELS  = ["@obverse", "@reverse", "@left", "@right", "@top", "@botttom", "@face", "@surface"] ## Array in vs String in
 CDLI_OBJECT_TYPES = ["@tablet","@envelope","@prism","@bulla","@fragment","@object"]
-CDLI_COMMENT_MARKERS = ['#', '$']
+CDLI_COMMENT_MARKERS = ['#', '$', '>']
 
 #Compile regular expressions relating to various parts of ATF file
 REGEX_ID = re.compile(r'^&(\w+) = (.+)')
 REGEX_REGION_START = re.compile(r"^@(\w+) ?(\d*)")
 REGEX_LINE_START = re.compile(r"^[0-9.']+ ?(.+)")
 REGEX_LINE_CONTINUE = re.compile(r"^ (.+)")
-REGEX_LINE_REFRENCE = re.compile(r"^>>(\w+) ([\w']+)")
-
+# REGEX_LINE_REFRENCE = re.compile(r"^>>(\w+) ([\w']+)")
 
 # Determines if a section header denotes a side or not, this list may need to be expanded
 def isSideMarker(string):
@@ -52,7 +51,7 @@ def seperateTablets(filename):
             curText = []
             curLineStart = lineNum
         else:
-            if len(line.strip()) > 0 and line[0] not in CDLI_COMMENT_MARKERS:  # Ignore comments and empty lines
+            if len(line.strip()) > 0:  # Ignore empty lines
                 curText.append( line.strip() )
         lineNum += 1
     return tabletStrings
@@ -86,12 +85,14 @@ def parseText(d, text):
     if len(text) == 0:
         return False
     else:
-        if text[0] in CDLI_OBJECT_TYPES:
-            d['objectType'] = text[0][1:]
-            i  = 1
+        i = 0
+        while text[i][0] in CDLI_COMMENT_MARKERS:
+            i+=1
+        if text[i] in CDLI_OBJECT_TYPES:
+            d['objectType'] = text[i][1:]
+            i  += 1
         else:
             d['objectType'] = 'None'
-            i  = 0
         sides = []
         while i < len(text):
             (side, i) = readSide(text, i)
@@ -152,13 +153,13 @@ def parseLine(lines, start, end):
         cont = True
         while cur < end and cont:
             continueMatch = REGEX_LINE_CONTINUE.match(lines[cur])
-            refrenceMatch = REGEX_LINE_REFRENCE.match(lines[cur])
             if continueMatch:
                 lineRecord['text'].append(continueMatch.group(1))
                 cur += 1
-            elif refrenceMatch:
-                lineRecord['refrenceId'] = refrenceMatch.group(1)
-                lineRecord['refrenceNum'] = refrenceMatch.group(2)
+            elif lines[cur][0] in CDLI_COMMENT_MARKERS:
+                if 'comments' not in lineRecord:
+                    lineRecord['comments'] = []
+                lineRecord['comments'].append(lines[cur])
                 cur += 1
             else :
                 cont = False

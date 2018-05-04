@@ -17,8 +17,8 @@ CDLI Data Parsing Tool
 		         {   subregion : none/seal/column/...,
 		             regionNum : n (optional),
 		             lines : [ { text : String, 
-					 (optional) referenceId : String, 
-					 (optional) referenceNum : String, 					 (optional) attestations : [nameId 1, nameId 2, ... ]
+					 (optional) comments :  [commentLine 1, ...]		 
+					 (optional) attestations : [nameId 1, nameId 2, ... ]
 					} , ....
 				     ]
 		         }, ...
